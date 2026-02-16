@@ -43,6 +43,7 @@ a:hover { color: var(--accent-hover); }
     max-width: 480px;
     margin: 0 auto;
     padding: 16px;
+    padding-top: max(16px, env(safe-area-inset-top));
     width: 100%;
 }
 
