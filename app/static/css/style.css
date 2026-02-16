@@ -213,6 +213,14 @@ a:hover { color: var(--accent-hover); }
 
 .btn-danger:hover { background: rgba(248, 113, 113, 0.25); }
 
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover { background: var(--bg-hover); }
+
 .btn-ghost {
     background: transparent;
     color: var(--text-secondary);
@@ -520,6 +528,15 @@ select.form-control {
     border-radius: var(--radius);
     padding: 14px 16px;
     margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    border-left: 3px solid transparent;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.history-entry.expanded {
+    border-left-color: var(--accent);
+    cursor: default;
 }
 
 .history-entry-header {
@@ -537,6 +554,7 @@ select.form-control {
 .history-exercise {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     padding: 3px 0;
     font-size: 0.85rem;
 }
@@ -544,6 +562,70 @@ select.form-control {
 .history-exercise .name { color: var(--text-primary); }
 .history-exercise .result { color: var(--text-secondary); }
 .history-exercise .skipped { color: var(--text-muted); font-style: italic; }
+
+.history-entry.expanded .history-exercise {
+    padding: 6px 0;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: background 0.15s;
+}
+
+.history-entry.expanded .history-exercise:hover {
+    background: var(--bg-hover);
+}
+
+.history-exercise-actions {
+    display: none;
+    margin-left: 8px;
+    flex-shrink: 0;
+}
+
+.history-entry.expanded .history-exercise-actions {
+    display: flex;
+}
+
+.history-exercise-delete {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+    line-height: 1;
+}
+
+.history-exercise-delete:hover {
+    color: var(--danger);
+    background: var(--danger-dim);
+}
+
+.history-delete-workout {
+    display: none;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+}
+
+.history-entry.expanded .history-delete-workout {
+    display: block;
+}
+
+.history-delete-workout-btn {
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 0;
+    transition: opacity 0.15s;
+}
+
+.history-delete-workout-btn:hover {
+    opacity: 0.8;
+}
 
 /* Tabs */
 .tabs {
@@ -595,6 +677,59 @@ select.form-control {
 .toast.success { border-color: var(--success); }
 
 /* Modal */
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 200;
+    padding: 16px;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 24px;
+    width: 100%;
+    max-width: 400px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.modal-header h2 {
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn:hover { color: var(--text-primary); }
+
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -604,19 +739,6 @@ select.form-control {
     justify-content: center;
     z-index: 200;
     padding: 16px;
-}
-
-.modal {
-    background: var(--bg-card);
-    border-radius: var(--radius);
-    padding: 24px;
-    width: 100%;
-    max-width: 400px;
-}
-
-.modal h2 {
-    font-size: 1.1rem;
-    margin-bottom: 16px;
 }
 
 .modal-actions {

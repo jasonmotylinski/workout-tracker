@@ -60,6 +60,25 @@ def start_workout():
     data = request.get_json()
     workout_id = data.get("workout_id")
     program_id = data.get("program_id")
+    custom_name = data.get("custom_name")
+
+    # Quick log: ad-hoc workout with just a name
+    if custom_name and not workout_id:
+        custom_name = custom_name.strip()
+        if not custom_name:
+            return jsonify({"error": "Workout name is required"}), 400
+        log = WorkoutLog(
+            user_id=current_user.id,
+            custom_name=custom_name,
+            notes=data.get("notes"),
+            completed_at=datetime.now(timezone.utc),
+        )
+        db.session.add(log)
+        db.session.commit()
+        return jsonify(log.to_dict()), 201
+
+    if not workout_id:
+        return jsonify({"error": "workout_id or custom_name is required"}), 400
 
     workout = Workout.query.filter_by(id=workout_id, user_id=current_user.id).first()
     if not workout:
@@ -194,6 +213,25 @@ def update_set(log_id, set_id):
     return jsonify(set_log.to_dict()), 200
 
 
+@api_bp.route("/logs/<int:log_id>/sets/<int:set_id>", methods=["DELETE"])
+@login_required
+def delete_set(log_id, set_id):
+    log = WorkoutLog.query.filter_by(id=log_id, user_id=current_user.id).first_or_404()
+    set_log = SetLog.query.filter_by(id=set_id, workout_log_id=log.id).first_or_404()
+    db.session.delete(set_log)
+    db.session.commit()
+    return jsonify({"message": "Deleted"}), 200
+
+
+@api_bp.route("/logs/<int:log_id>", methods=["DELETE"])
+@login_required
+def delete_log(log_id):
+    log = WorkoutLog.query.filter_by(id=log_id, user_id=current_user.id).first_or_404()
+    db.session.delete(log)
+    db.session.commit()
+    return jsonify({"message": "Deleted"}), 200
+
+
 @api_bp.route("/exercises/<int:exercise_id>/progress", methods=["GET"])
 @login_required
 def exercise_progress(exercise_id):
@@ -222,7 +260,7 @@ def exercise_progress(exercise_id):
             sessions[log_id] = {
                 "log_id": log_id,
                 "date": set_log.workout_log.started_at.isoformat(),
-                "workout_name": set_log.workout_log.workout.name,
+                "workout_name": set_log.workout_log.custom_name if set_log.workout_log.workout_id is None else set_log.workout_log.workout.name,
                 "sets": [],
             }
         sessions[log_id]["sets"].append(set_log.to_dict())

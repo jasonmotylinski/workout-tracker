@@ -15,6 +15,17 @@
     <div id="history-list"></div>
 </div>
 
+<!-- Edit modal -->
+<div id="edit-modal" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Edit Exercise</h2>
+            <button class="close-btn" onclick="closeEditModal()">×</button>
+        </div>
+        <div id="edit-modal-body"></div>
+    </div>
+</div>
+
 <div id="calendar-view" class="hidden">
     <div class="calendar-nav">
         <button onclick="changeMonth(-1)">‹</button>
@@ -41,6 +52,7 @@ let currentTab = 'list';
 let calMonth, calYear;
 let workoutDates = [];
 let allLogs = [];
+let expandedLogId = null;
 
 const now = new Date();
 calMonth = now.getMonth() + 1;
@@ -60,65 +72,7 @@ function switchTab(tab) {
 async function loadHistory() {
     const logs = await api.get('/api/logs');
     allLogs = logs;
-    const container = document.getElementById('history-list');
-
-    if (!logs.length) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <h3>No workouts yet</h3>
-                <p>Complete a workout and it will show up here.</p>
-            </div>
-        `;
-        return;
-    }
-
-    container.innerHTML = logs.map(log => {
-        // Group sets by exercise
-        const exerciseMap = new Map();
-        for (const s of (log.sets || [])) {
-            if (!exerciseMap.has(s.exercise_id)) {
-                exerciseMap.set(s.exercise_id, { name: s.exercise_name, type: s.exercise_type, sets: [] });
-            }
-            exerciseMap.get(s.exercise_id).sets.push(s);
-        }
-
-        const exerciseRows = Array.from(exerciseMap.values()).map(ex => {
-            const exerciseId = ex.sets[0].exercise_id;
-            if (ex.type === 'cardio') {
-                const s = ex.sets[0];
-                const result = s.completed ? `${s.duration_minutes} min` : 'Skipped';
-                return `<div class="history-exercise" onclick="window.location.href='/exercises/${exerciseId}/progress'" style="cursor: pointer;">
-                    <span class="name">${ex.name}</span>
-                    <span class="${s.completed ? 'result' : 'skipped'}">${result}</span>
-                </div>`;
-            }
-
-            const completedSets = ex.sets.filter(s => s.completed);
-            if (!completedSets.length) {
-                return `<div class="history-exercise" onclick="window.location.href='/exercises/${exerciseId}/progress'" style="cursor: pointer;">
-                    <span class="name">${ex.name}</span>
-                    <span class="skipped">Skipped</span>
-                </div>`;
-            }
-
-            const weight = completedSets[0].weight;
-            const repsStr = completedSets.map(s => s.actual_reps).join('/');
-            return `<div class="history-exercise" onclick="window.location.href='/exercises/${exerciseId}/progress'" style="cursor: pointer;">
-                <span class="name">${ex.name}</span>
-                <span class="result">${repsStr} ${weight ? weight + 'lb' : ''}</span>
-            </div>`;
-        }).join('');
-
-        return `
-            <div class="history-entry">
-                <div class="history-entry-header">
-                    <h3>${log.workout_name}</h3>
-                    <span class="date">${formatDate(log.started_at)}</span>
-                </div>
-                ${exerciseRows}
-            </div>
-        `;
-    }).join('');
+    renderHistoryList();
 }
 
 async function loadCalendar() {
@@ -193,6 +147,210 @@ function renderDayLogs(container, logs, dateStr) {
             </div>
         </div>
     `).join('');
+}
+
+function toggleExpand(logId) {
+    expandedLogId = expandedLogId === logId ? null : logId;
+    renderHistoryList();
+}
+
+function renderHistoryList() {
+    const container = document.getElementById('history-list');
+    const logs = allLogs;
+
+    if (!logs.length) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <h3>No workouts yet</h3>
+                <p>Complete a workout and it will show up here.</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = logs.map(log => {
+        const isExpanded = expandedLogId === log.id;
+        const exerciseMap = new Map();
+        for (const s of (log.sets || [])) {
+            if (!exerciseMap.has(s.exercise_id)) {
+                exerciseMap.set(s.exercise_id, { name: s.exercise_name, type: s.exercise_type, sets: [] });
+            }
+            exerciseMap.get(s.exercise_id).sets.push(s);
+        }
+
+        const exerciseRows = Array.from(exerciseMap.values()).map(ex => {
+            const exerciseId = ex.sets[0].exercise_id;
+            if (ex.type === 'cardio') {
+                const s = ex.sets[0];
+                const result = s.completed ? `${s.duration_minutes} min` : 'Skipped';
+                const rowClick = isExpanded
+                    ? `onclick="event.stopPropagation(); openEditModal(${log.id}, ${s.id}, '${ex.name}', 'cardio', ${s.duration_minutes}, null)"`
+                    : `onclick="event.stopPropagation(); window.location.href='/exercises/${exerciseId}/progress'"`;
+                return `<div class="history-exercise" ${rowClick} style="cursor: pointer;">
+                    <span class="name" style="flex: 1;">${ex.name}</span>
+                    <span class="${s.completed ? 'result' : 'skipped'}">${result}</span>
+                    <span class="history-exercise-actions">
+                        <button class="history-exercise-delete" onclick="event.stopPropagation(); deleteExercise(${log.id}, ${s.id})" title="Delete exercise">×</button>
+                    </span>
+                </div>`;
+            }
+
+            const completedSets = ex.sets.filter(s => s.completed);
+            if (!completedSets.length) {
+                const firstSet = ex.sets[0];
+                const rowClick = isExpanded
+                    ? `onclick="event.stopPropagation(); openEditModal(${log.id}, ${firstSet.id}, '${ex.name}', '${ex.type}', ${ex.type === 'cardio' ? firstSet.duration_minutes : 'null'}, ${ex.type === 'cardio' ? 'null' : firstSet.weight}, '${ex.type === 'cardio' ? '' : firstSet.planned_reps}')"`
+                    : `onclick="event.stopPropagation(); window.location.href='/exercises/${exerciseId}/progress'"`;
+                return `<div class="history-exercise" ${rowClick} style="cursor: pointer;">
+                    <span class="name" style="flex: 1;">${ex.name}</span>
+                    <span class="skipped">Skipped</span>
+                    <span class="history-exercise-actions">
+                        <button class="history-exercise-delete" onclick="event.stopPropagation(); deleteExercise(${log.id}, ${firstSet.id})" title="Delete exercise">×</button>
+                    </span>
+                </div>`;
+            }
+
+            const weight = completedSets[0].weight;
+            const repsStr = completedSets.map(s => s.actual_reps).join('/');
+            const rowClick = isExpanded
+                ? `onclick="event.stopPropagation(); openEditModal(${log.id}, ${completedSets[0].id}, '${ex.name}', 'strength', null, ${weight}, '${completedSets.map(s => s.actual_reps).join(',')}')"`
+                : `onclick="event.stopPropagation(); window.location.href='/exercises/${exerciseId}/progress'"`;
+            return `<div class="history-exercise" ${rowClick} style="cursor: pointer;">
+                <span class="name" style="flex: 1;">${ex.name}</span>
+                <span class="result">${repsStr} ${weight ? weight + 'lb' : ''}</span>
+                <span class="history-exercise-actions">
+                    <button class="history-exercise-delete" onclick="event.stopPropagation(); deleteExercise(${log.id}, ${completedSets[0].id})" title="Delete exercise">×</button>
+                </span>
+            </div>`;
+        }).join('');
+
+        return `
+            <div class="history-entry${isExpanded ? ' expanded' : ''}" onclick="toggleExpand(${log.id})">
+                <div class="history-entry-header">
+                    <div style="flex: 1;">
+                        <h3>${log.workout_name}</h3>
+                        <span class="date">${formatDate(log.started_at)}</span>
+                    </div>
+                </div>
+                ${exerciseRows}
+                <div class="history-delete-workout">
+                    <button class="history-delete-workout-btn" onclick="event.stopPropagation(); deleteWorkout(${log.id})">Delete Workout</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+let editingSet = null;
+
+async function deleteWorkout(logId) {
+    if (await showConfirm('Delete this workout?', 'Delete', 'btn-danger')) {
+        try {
+            await api.delete(`/api/logs/${logId}`);
+            showToast('Workout deleted', 'success');
+            loadHistory();
+        } catch (err) {
+            showToast(err.message, 'error');
+        }
+    }
+}
+
+async function deleteExercise(logId, setId) {
+    if (await showConfirm('Delete this exercise?', 'Delete', 'btn-danger')) {
+        try {
+            await api.delete(`/api/logs/${logId}/sets/${setId}`);
+            showToast('Exercise deleted', 'success');
+            loadHistory();
+        } catch (err) {
+            showToast(err.message, 'error');
+        }
+    }
+}
+
+function openEditModal(logId, setId, exerciseName, type, duration, weight, reps) {
+    editingSet = { logId, setId, exerciseName, type, duration, weight, reps };
+    const modal = document.getElementById('edit-modal');
+    const body = document.getElementById('edit-modal-body');
+
+    if (type === 'cardio') {
+        body.innerHTML = `
+            <div class="form-group">
+                <label>${exerciseName}</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" id="edit-duration" class="form-control" value="${duration || 0}" step="1">
+                    <span class="text-muted" style="padding-top: 10px;">minutes</span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="saveEdit()">Save</button>
+                <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+            </div>
+        `;
+    } else {
+        const repsArray = reps ? reps.split(',') : [];
+        body.innerHTML = `
+            <div class="form-group">
+                <label>${exerciseName}</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" id="edit-weight" class="form-control" value="${weight || 0}" step="0.5" placeholder="Weight">
+                    <span class="text-muted" style="padding-top: 10px;">lb</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Reps: ${repsArray.map((r, i) => `
+                    <div style="display: inline-block; margin-right: 10px;">
+                        <input type="number" class="form-control" value="${r}" style="width: 50px;" onchange="updateRepAtIndex(${i}, this.value)">
+                    </div>
+                `).join('')}</label>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="saveEdit()">Save</button>
+                <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+            </div>
+        `;
+    }
+
+    modal.classList.remove('hidden');
+}
+
+function closeEditModal() {
+    document.getElementById('edit-modal').classList.add('hidden');
+    editingSet = null;
+}
+
+function updateRepAtIndex(index, value) {
+    if (!editingSet) return;
+    const repsArray = editingSet.reps.split(',');
+    repsArray[index] = parseInt(value);
+    editingSet.reps = repsArray.join(',');
+}
+
+async function saveEdit() {
+    if (!editingSet) return;
+
+    try {
+        const payload = {};
+        if (editingSet.type === 'cardio') {
+            const duration = parseInt(document.getElementById('edit-duration').value);
+            payload.duration_minutes = duration;
+            if (duration > 0) {
+                payload.completed = true;
+            }
+        } else {
+            payload.weight = parseFloat(document.getElementById('edit-weight').value);
+            const repsInputs = document.querySelectorAll('#edit-modal-body input[type="number"]');
+            if (repsInputs.length > 1) {
+                payload.actual_reps = parseInt(repsInputs[1].value);
+            }
+        }
+
+        await api.put(`/api/logs/${editingSet.logId}/sets/${editingSet.setId}`, payload);
+        showToast('Saved', 'success');
+        closeEditModal();
+        loadHistory();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
 }
 
 loadHistory();

@@ -9,7 +9,8 @@ class WorkoutLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     program_id = db.Column(db.Integer, db.ForeignKey("programs.id"), nullable=True)
-    workout_id = db.Column(db.Integer, db.ForeignKey("workouts.id"), nullable=False)
+    workout_id = db.Column(db.Integer, db.ForeignKey("workouts.id"), nullable=True)
+    custom_name = db.Column(db.String(200), nullable=True)
     started_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     completed_at = db.Column(db.DateTime, nullable=True)
     notes = db.Column(db.Text, nullable=True)
@@ -29,7 +30,7 @@ class WorkoutLog(db.Model):
             "id": self.id,
             "program_id": self.program_id,
             "workout_id": self.workout_id,
-            "workout_name": self.workout.name,
+            "workout_name": self.custom_name if self.workout_id is None else self.workout.name,
             "started_at": self.started_at.isoformat(),
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
             "notes": self.notes,

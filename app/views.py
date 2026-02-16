@@ -48,6 +48,12 @@ def active_workout(log_id):
     return render_template("active_workout.html", log_id=log_id)
 
 
+@views_bp.route("/quick-log")
+@login_required
+def quick_log():
+    return render_template("quick_log.html")
+
+
 @views_bp.route("/history")
 @login_required
 def history():
