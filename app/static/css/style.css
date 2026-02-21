@@ -42,7 +42,6 @@ a:hover { color: var(--accent-hover); }
     max-width: 480px;
     margin: 0 auto;
     padding: 16px;
-    padding-top: max(16px, env(safe-area-inset-top));
     width: 100%;
 }
 
@@ -324,6 +323,7 @@ select.form-control {
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     border-bottom: 1px solid var(--border);
+    padding-top: env(safe-area-inset-top);
 }
 
 .nav-inner {
