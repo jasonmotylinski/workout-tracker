@@ -10,24 +10,16 @@
   "theme_color": "#4a9eff",
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%234a9eff' width='192' height='192'/><text x='96' y='110' font-size='80' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>W</text></svg>",
+      "src": "/static/icon-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%234a9eff' width='512' height='512'/><text x='256' y='320' font-size='240' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>W</text></svg>",
+      "src": "/static/icon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%230f1117' width='540' height='720'/><text x='270' y='360' font-size='80' fill='%234a9eff' text-anchor='middle' dominant-baseline='middle'>Workout Tracker</text></svg>",
-      "sizes": "540x720",
-      "type": "image/svg+xml",
-      "form_factor": "narrow"
     }
   ],
   "categories": ["fitness", "health"],
