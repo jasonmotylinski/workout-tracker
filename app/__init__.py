@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, redirect, url_for
+from flask import Flask, jsonify, request, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
@@ -24,6 +24,10 @@ def create_app(config_name=None):
     migrate.init_app(app, db)
     login_manager.init_app(app)
     bcrypt.init_app(app)
+
+    @app.before_request
+    def make_session_permanent():
+        session.permanent = True
 
     @login_manager.unauthorized_handler
     def unauthorized():

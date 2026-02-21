@@ -23,7 +23,7 @@ def register():
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
-    login_user(user)
+    login_user(user, remember=True)
     return jsonify(user.to_dict()), 201
 
 
@@ -37,7 +37,7 @@ def login():
     if not user or not user.check_password(password):
         return jsonify({"error": "Invalid email or password"}), 401
 
-    login_user(user)
+    login_user(user, remember=True)
     return jsonify(user.to_dict()), 200
 
 
